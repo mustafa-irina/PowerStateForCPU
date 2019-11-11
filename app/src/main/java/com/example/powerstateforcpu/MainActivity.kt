@@ -37,17 +37,22 @@ class MainActivity : AppCompatActivity() {
     private var fileStatisticArr = mutableMapOf<String, OutputStreamWriter>()
     private var fileStatistic: OutputStreamWriter? = null
     private var isHeaderWritten = mutableMapOf<String, Boolean>()
+    private var powerMapForAsus_Z00ED = mutableMapOf<Int, Double>(200000 to 51.25, 400000 to 74.39, 533333 to 95.71,
+        800000 to 129.54, 998400 to 163.55, 1094400 to 185.14, 1152000 to 191.84, 1209600 to 233.88)
+    private var nastya = mutableMapOf<Int, Int>(1200000 to 577, 1000000 to 408, 800000 to 249, 500000 to 148, 200000 to 55)
     //private var handler: Handler? = null
 
     fun makeCSVFilesForConcreteK (launch: Long, cpuX: String) {
 
         var cpuXInfo = cpuInfo.get(cpuX)!!
+        var power = 0.0
 
         var CSV_HEADER = "Core,Time in Online,Time in Idle,Time in Offline,Start Temperature,Finish Temperature"
         for (freq in cpuInfo.get(cpuX)!!.mapsFreq.keys) {
             CSV_HEADER += ',' + freq.toString()
         }
         CSV_HEADER += ",Launch Number"
+        CSV_HEADER += ",Power"
 
         var statistics = ""
         statistics += cpuXInfo.core + ','
@@ -58,8 +63,11 @@ class MainActivity : AppCompatActivity() {
         statistics += cpuXInfo.FTemp.toString() + ','
         for (freq in cpuXInfo.mapsFreq!!.iterator())  {
             statistics += (freq.value * 10).toString() + ','
+            var zhopa = powerMapForAsus_Z00ED!!.get(freq!!.key.toInt())!!
+            power += freq.value.toDouble() / 100 * zhopa
         }
         statistics += launch.toString()
+        statistics += power.toString()
         statistics += '\n'
 
         if (!isHeaderWritten.get(cpuX)!!) {
@@ -86,7 +94,7 @@ class MainActivity : AppCompatActivity() {
         mNEditText = findViewById(R.id.editTextN)
         mKEditText = findViewById(R.id.editTextK)
         //barChartView = findViewById(R.id.chartConsumptionGraph)
-        for (cpuX in arrayListOf("cpu0", "cpu1", "cpu2", "cpu3", "cpu4", "cpu5", "cpu6", "cpu7")) { //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        for (cpuX in arrayListOf("cpu0", "cpu1", "cpu2", "cpu3"/*, "cpu4", "cpu5", "cpu6", "cpu7"*/)) { //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             //fileStatistic = OutputStreamWriter(this.openFileOutput("Table_for_Concrete_" + cpuX + ".csv", Context.MODE_PRIVATE))
             fileStatisticArr.put(cpuX, OutputStreamWriter(this.openFileOutput("Table_for_Concrete_" + cpuX + ".csv", Context.MODE_PRIVATE)))
             isHeaderWritten.put(cpuX, false)
@@ -96,7 +104,7 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    fun parserCpuIdle (wfi: File, standalone_pc: File/*, pc: File*/) : MutableMap<String, Long> { //
+    fun parserCpuIdle (wfi: File, standalone_pc: File, pc: File) : MutableMap<String, Long> { //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         var listStatistic = mutableMapOf<String, Long>()
 
         val bufferedReadWFI = BufferedReader(FileReader(wfi))
@@ -107,10 +115,10 @@ class MainActivity : AppCompatActivity() {
         listStatistic?.put("Standalone PC", bufferedReadStandalonePC.readLine().trim().toLong())
         bufferedReadStandalonePC.close()
 
-//        val bufferedReadPC = BufferedReader(FileReader(pc))
-//        var tmp =  bufferedReadPC.readLine().trim().toLong()
-//        listStatistic?.put("Power Collapse", tmp)
-//        bufferedReadPC.close()
+        val bufferedReadPC = BufferedReader(FileReader(pc))                     //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        var tmp =  bufferedReadPC.readLine().trim().toLong()
+        listStatistic?.put("Power Collapse", tmp)
+        bufferedReadPC.close()
         return listStatistic
     }
 
@@ -221,24 +229,24 @@ class MainActivity : AppCompatActivity() {
             var arrayStandalonePC = mutableMapOf<String, File>() //список (ядро, standalone_pc_time)
             var arrayPC = mutableMapOf<String, File>() //список (ядро, pc_time)
             //var arrayTemp = arrayListOf<File>()
-            for (cpuX in arrayListOf("cpu0", "cpu1", "cpu2", "cpu3", "cpu4", "cpu5", "cpu6", "cpu7")) { //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            for (cpuX in arrayListOf("cpu0", "cpu1", "cpu2", "cpu3"/*, "cpu4", "cpu5", "cpu6", "cpu7"*/)) { //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 arrayTimeInState.put(cpuX, File("./../../../../sys/devices/system/cpu/" + cpuX + "/cpufreq/stats/time_in_state"))
                 arrayWFI.put(cpuX, File("./../../../../sys/devices/system/cpu/" + cpuX + "/cpuidle/state0/time"))
                 arrayStandalonePC.put(cpuX, File("./../../../../sys/devices/system/cpu/" + cpuX + "/cpuidle/state1/time"))
-                //arrayPC.put(cpuX, File("./../../../../sys/devices/system/cpu/" + cpuX + "/cpuidle/state2/time"))
+                arrayPC.put(cpuX, File("./../../../../sys/devices/system/cpu/" + cpuX + "/cpuidle/state2/time"))   //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 //arrayTemp.add()
             }
 //
 //            mInternetTextView = findViewById(R.id.textView2) as TextView
 
             var mapTimeInStateStart = mutableMapOf<String, MutableMap<Long, Long>>() //список ядер и их частот перед стартом треда
-            for (cpuX in arrayListOf("cpu0", "cpu1", "cpu2", "cpu3", "cpu4", "cpu5", "cpu6", "cpu7")) { //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            for (cpuX in arrayListOf("cpu0", "cpu1", "cpu2", "cpu3"/*, "cpu4", "cpu5", "cpu6", "cpu7"*/)) { //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 mapTimeInStateStart.put(cpuX, parserTimeInState(arrayTimeInState.get(cpuX)!!))
             }
 
             var mapIdleStart = mutableMapOf<String, MutableMap<String, Long>>() //список ядер и их idle состояний перед стартом треда
-            for (cpuX in arrayListOf("cpu0", "cpu1", "cpu2", "cpu3", "cpu4", "cpu5", "cpu6", "cpu7")) { //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                mapIdleStart.put(cpuX, parserCpuIdle(arrayWFI.get(cpuX)!!, arrayStandalonePC.get(cpuX)!!/*, arrayPC.get(cpuX)!!*/))
+            for (cpuX in arrayListOf("cpu0", "cpu1", "cpu2", "cpu3"/*, "cpu4", "cpu5", "cpu6", "cpu7"*/)) { //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                mapIdleStart.put(cpuX, parserCpuIdle(arrayWFI.get(cpuX)!!, arrayStandalonePC.get(cpuX)!!, arrayPC.get(cpuX)!!)) //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             }
 
             //mHelloTextView!!.setText("work thread")
@@ -257,19 +265,19 @@ class MainActivity : AppCompatActivity() {
             //mInternetTextView?.setText("")
 
             var mapTimeInStateFinish = mutableMapOf<String, MutableMap<Long, Long>>() //список ядер и их частот после стартом треда
-            for (cpuX in arrayListOf("cpu0", "cpu1", "cpu2", "cpu3", "cpu4", "cpu5", "cpu6", "cpu7")) { //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            for (cpuX in arrayListOf("cpu0", "cpu1", "cpu2", "cpu3"/*, "cpu4", "cpu5", "cpu6", "cpu7"*/)) { //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 mapTimeInStateFinish.put(cpuX, parserTimeInState(arrayTimeInState.get(cpuX)!!))
             }
 
             var mapIdleFinish = mutableMapOf<String, MutableMap<String, Long>>() //список ядер и их idle состояний после стартом треда
-            for (cpuX in arrayListOf("cpu0", "cpu1", "cpu2", "cpu3", "cpu4", "cpu5", "cpu6", "cpu7")) { //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                mapIdleFinish.put(cpuX, parserCpuIdle(arrayWFI.get(cpuX)!!, arrayStandalonePC.get(cpuX)!!/*, arrayPC.get(cpuX)!!*/))
+            for (cpuX in arrayListOf("cpu0", "cpu1", "cpu2", "cpu3"/*, "cpu4", "cpu5", "cpu6", "cpu7"*/)) { //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                mapIdleFinish.put(cpuX, parserCpuIdle(arrayWFI.get(cpuX)!!, arrayStandalonePC.get(cpuX)!!, arrayPC.get(cpuX)!!)) //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             }
             cpuInfo.clear() //подготовка массива данных об энергосостояниях
 
             var mapSumDiff = mutableMapOf<String, MutableMap<Long, Long>>() //(ядро, (частота, время работы)
             var mapSumDiffIdle = mutableMapOf<String, MutableMap<String, Long>>() //(ядро, (idle-состояние, время пребывания))
-            for (cpuX in arrayListOf("cpu0", "cpu1", "cpu2", "cpu3", "cpu4", "cpu5", "cpu6", "cpu7")) { //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            for (cpuX in arrayListOf("cpu0", "cpu1", "cpu2", "cpu3"/*, "cpu4", "cpu5", "cpu6", "cpu7"*/)) { //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 mapSumDiff.put(cpuX, diffMap(mapTimeInStateStart.get(cpuX)!!, mapTimeInStateFinish.get(cpuX)!!))
                 mapSumDiffIdle.put(cpuX, diffMap(mapIdleStart.get(cpuX)!!, mapIdleFinish.get(cpuX)!!))
             }
@@ -292,7 +300,7 @@ class MainActivity : AppCompatActivity() {
 //                mapSumTiI.put(e, sum)
 //            }
 
-            for (cpuX in arrayListOf("cpu0", "cpu1", "cpu2", "cpu3", "cpu4", "cpu5", "cpu6", "cpu7")) { //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            for (cpuX in arrayListOf("cpu0", "cpu1", "cpu2", "cpu3"/*, "cpu4", "cpu5", "cpu6", "cpu7"*/)) { //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 cpuInfo.put(cpuX, CPUInfo(cpuX, diffMap(mapTimeInStateStart.get(cpuX)!!, mapTimeInStateFinish.get(cpuX)!!).map {it.value}?.sum() * 10,
                     diffMap(mapIdleStart.get(cpuX)!!, mapIdleFinish.get(cpuX)!!).map {it.value}?.sum() / 1000,
                     executionTime - diffMap(mapTimeInStateStart.get(cpuX)!!, mapTimeInStateFinish.get(cpuX)!!).map {it.value}?.sum() * 10,
@@ -312,7 +320,7 @@ class MainActivity : AppCompatActivity() {
 //
 //            }
 
-            for (cpuX in arrayListOf("cpu0", "cpu1", "cpu2", "cpu3", "cpu4", "cpu5", "cpu6", "cpu7")) { //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            for (cpuX in arrayListOf("cpu0", "cpu1", "cpu2", "cpu3"/*, "cpu4", "cpu5", "cpu6", "cpu7"*/)) { //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 makeCSVFilesForConcreteK(i.toLong(), cpuX)
             }
 
@@ -321,7 +329,7 @@ class MainActivity : AppCompatActivity() {
            // mHelloTextView!!.setText("time work: " + allTime + "\nПроверь таблицу")
 
         }
-        for (cpuX in arrayListOf("cpu0", "cpu1", "cpu2", "cpu3", "cpu4", "cpu5", "cpu6", "cpu7")) { //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        for (cpuX in arrayListOf("cpu0", "cpu1", "cpu2", "cpu3"/*, "cpu4", "cpu5", "cpu6", "cpu7"*/)) { //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             fileStatisticArr.get(cpuX)?.close()
         }
         mHelloTextView!!.setText("time work: " + allTime + "\nПроверь таблицу")
